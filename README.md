@@ -1,71 +1,47 @@
-# bt_tracker
-Projekt na przedmiot systemy wbudowane - Śledzenie lokalizacji nadajnika Bluetooth Low Energy (BLE) z wykorzystaniem esp32. 
+# BT-Tracer
+System for Tracking the Location of Bluetooth Low Energy (BLE) Beacons Using ESP32.
 
-## Opis projektu
+## About
 
-Śledzenie lokalizacji obiektów na zamkniętym i niewielkim obszarze, takim jak pokój czy budynek (IPS - Indoor Positioning System), ma wiele zastosowań w przemyśle oraz rozwiązaniach typu Smart Home. W tym przypadku zastosowanie GPS-a, ze względu na ograniczenia tej technologii, nie pozwala na osiągnięcie zadowalających efektów. Systemy do śledzenia lokalizacji na takich obszarach wykorzystują zwykle inne technologie oparte na popularnych standardach, takich jak Wi-Fi, RFID, UWB czy BLE, i opierają się na analizie siły sygnału zarejestrowanego przez odbiornik (RSSI).
+Tracking the location of objects in a confined and small area, such as a room or building (IPS - Indoor Positioning System), has many applications in industry and Smart Home solutions. In this case, using GPS is not effective due to the limitations of this technology. Indoor positioning systems typically rely on other technologies based on popular standards such as Wi-Fi, RFID, UWB, or BLE, utilizing signal strength analysis recorded by a receiver (RSSI).
 
-BLE to rozszerzenie klasycznego standardu Bluetooth, opracowane na potrzeby zmniejszenia zużycia energii przy zachowaniu podobnego zasięgu jak klasyczna wersja. Technologia BLE, dzięki niewielkiemu zużyciu energii, jest często wykorzystywana w systemach IPS (np. iBeacon).
+BLE (Bluetooth Low Energy) is an extension of the classic Bluetooth standard, designed to reduce power consumption while maintaining a similar range to the standard version. Due to its low energy consumption, BLE technology is often used in IPS systems (e.g., iBeacon).
 
-Śledzenie lokalizacji nadajnika BLE jest możliwe na podstawie analizy siły sygnału emitowanego przez urządzenie, które ogłasza w regularnych interwałach protokołem BLE. Na podstawie RSSI odczytanego przez odbiorniki rozmieszczone w różnych miejscach na obszarze, w którym chcemy śledzić lokalizację, możliwe jest odczytanie odległości od każdego z odbiorników do nadajnika, a następnie określenie przybliżonej lokalizacji nadajnika przy pomocy metody trilateracji.
+Tracking the location of a BLE beacon is possible by analyzing the signal strength emitted by a device that broadcasts at regular intervals using the BLE protocol. Based on the RSSI values received by receivers placed in different locations within the tracking area, it is possible to determine the distance from each receiver to the beacon and then estimate the beacon's approximate location using the trilateration method.
  
 
-## Wykorzystane urządzenia
+## Used Devices
 
-- ESP32 z ESP-WROOM-32 - pełniące role nadajnika BLE (role nadajnika może pełnić dowolne urządzenie wspierające BLE, które można zidentifikować na podstawie ogłaszanej nazwy)
+- **ESP32 with ESP-WROOM-32** – serving as the BLE beacon (any device supporting BLE, which can be identified based on the announced name, can perform the role of the beacon).
 
-- ESP32 z ESP-WROOM-32 x3 (lub więcej) - będące odbiornikami zczytującymi wartość RSSI ogłaszającego się nadajnika. 
+- **ESP32 with ESP-WROOM-32 x3 (or more)** – serving as receivers that read the RSSI value from the broadcasting beacon.
 
-- PC z systemem Windows 11, na którym działa serwer i z którym komunikują się odbiorniki. Musi znajdować się w tym samym VLAN co odbiorniki.
+- **PC with Windows 11** – running the server and communicating with the receivers. It must be on the same VLAN as the receivers.
 
-## Szczegóły projektu
+## System Components and Schema
 
-### Serwer
-Aplikacja serwera po uruchomieniu udostępnia użytkownikowi interfejs graficzny, pozwalający na konfigurację oraz wizualizację pozycji odbiorników i śledzonego nadajnika. Serwer po uruchomieniu zaczyna nasłuchiwać połączeń od odbiorników. Komunikacja między odbiornikami a serwerem odbywa się za pomocą protokołu TCP.
+### Server
+The server application, upon launch, provides the user with a graphical interface that allows for configuration and visualization of the positions of receivers and the tracked beacon. Once the server is running, it starts listening for connections from receivers. Communication between the receivers and the server occurs via the TCP protocol.
 
-### Odbiorniki
-Odbiornik ESP32 po uruchomieniu próbuje przyłączyć się do sieci. Następnie inizjalizuje moduł BLE i stara się zainicjować komunikację z serwerem. Jeżeli serwer jest uruchomiony to połączenie jest inicjalizowane a serwer przesyła odbiornikowi konfiguracje potrzebną do śledzenia nadajnika (nazwę ogłaszanego urządzenia). Następnie odbiornik regularnie skanuje urządzenia BLE i jeżeli wykrywa śledzone urządzenie to przesyła na serwer aktualne RSSI.
+### Receivers
+Once the ESP32 receiver is powered on, it attempts to connect to the network. It then initializes the BLE module and tries to establish communication with the server. If the server is running, the connection is initialized, and the server sends the necessary configuration to the receiver for tracking the beacon (the name of the announced device). The receiver then regularly scans for BLE devices, and if it detects the tracked device, it sends the current RSSI to the server.
 
-### Schemat
+### Schema
 
 ![schemat](https://github.com/wojciechloboda/bt_tracker/assets/46354460/9c293090-ae7a-4e37-8075-00fe197e3c04)
 
 
-### Konwersja RSSI na metry
+### RSSI Error Reduction
+The RSSI value read directly by the ESP32 is susceptible to noise and interference depending on the environment where the tests are conducted. Due to measurement errors, the values can significantly vary between successive readings, making it difficult to accurately determine the beacon's location. To reduce the impact of measurement errors, a Kalman filter was applied. The Kalman filter is a widely used state estimator that estimates the value of a variable based on noisy readings, taking into account previous values and thus reducing the error. (Application of the Kalman filter for RSSI: [https://www.wouterbulten.nl/posts/kalman-filters-explained-removing-noise-from-rssi-signals/](https://www.wouterbulten.nl/posts/kalman-filters-explained-removing-noise-from-rssi-signals/)).
 
-$ \text{DISTANCE} = 10^{(\text{MEASURED\_RSSI} - \text{RSSI})/(10 * N)} $
-
-MEASURED\_RSSI - RSSI odczytane dla nadajnika w odległości 1 metra od odbiornika
-
-N - stała zależna od środowiska, należy dostosować eksperymentalnie (Domyślnie N = 2)
+### Beacon Position Calculation
+Calculating the approximate location of the beacon based on three or more measurements (from each receiver) is possible using the trilateration method ([https://www.alanzucconi.com/2017/03/13/positioning-and-trilateration/](https://www.alanzucconi.com/2017/03/13/positioning-and-trilateration/)). Trilateration allows for determining the intersection point of three or more circles (the receiver as the center of the circle, the radius as the measured distance) or finding an approximation if, due to measurement errors, the circles do not intersect. (Used library: [https://pypi.org/project/easy-trilateration/](https://pypi.org/project/easy-trilateration/)).
 
 
+## Code fragments
 
-### Redukcja błędu RSSI
-Wartość RSSI odczytana bezpośrednio przez ESP32 jest podatna na szumy i zakłócenia w zależności od środowiska, w którym przeprowadzane są testy. Z powodu błędów pomiarowych wartości mogą się znacznie różnić między kolejnymi odczytami, co utrudnia dokładne określenie lokalizacji nadajnika. Aby zredukować wpływ błędów pomiarowych, zastosowany został filtr Kalmana, powszechnie stosowany estymator stanu, który estymuje wartość zmiennej na podstawie zakłóconego odczytu, biorąc pod uwagę poprzednie wartości i redukując w ten sposób błąd. (Zastosowanie filtra Kalmana dla RSSI: https://www.wouterbulten.nl/posts/kalman-filters-explained-removing-noise-from-rssi-signals/). 
 
-### Obliczanie lokalizacji nadajnika
-Obliczanie przybliżonej lokalizacji nadajnika na podstawie trzech lub większej liczby pomiarów (z każdego odbiornika) jest możliwe za pomocą metody trilateracji (https://www.alanzucconi.com/2017/03/13/positioning-and-trilateration/). Trilateracja pozwala na określenie punktu przecięcia trzech lub więcej okręgów (odbiornik jako środek okręgu, promień - odczytana odległość) lub znalezienie przybliżenia, jeżeli w wyniku błędu pomiaru odbiorników okręgi się nie przecinają (Wykorzystana biblioteka: https://pypi.org/project/easy-trilateration/).
-
-## Implementacja
-
-### Aplikacja serwera
-
-Aplikacja serwera została napisana w języku Python 3.10. 
-
-- tkinker (https://docs.python.org/3/library/tkinter.html) - Intefejsc graficzny
-
-- easy_trilateration (https://pypi.org/project/easy-trilateration/) - Implementacja trilateracji 
-
-### Odbiornik ESP32
-
-ESP programowane było za pomocą Arduino IDE, wykorzystane biblioteki:
-
-- ESP32 BLE Arduino (https://www.arduino.cc/reference/en/libraries/esp32-ble-arduino/)
-
-- Arduino Wifi (https://www.arduino.cc/reference/en/libraries/wifi/) 
-
-#### Inicjalizacja BLE
+#### BLE Initialization
 
 ```
 void init_ble_scanner() {
@@ -78,7 +54,7 @@ void init_ble_scanner() {
 }
 ```
 
-#### Łączenie z serwerem
+#### Connecting to server
 ```
 bool initialize_conn_to_server() {
     Message msg;
@@ -108,7 +84,7 @@ bool initialize_conn_to_server() {
 
 ```
 
-#### Odczytywanie wartości RSSI
+#### Reading RSSI
 ```
 class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice advertisedDevice) {
@@ -121,42 +97,36 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
 };
 ```
 
-## Jak korzystać z systemu? 
+## Usage
 
-1. Uruchomienie aplikacji serwera:
+1. Run server app:
     ```
     $ python ./server/main.py
     ```
-2. Ustawianie nazwy nadajnika, i uruchomienie serwera:
+2. Set the beacon name and start the server:
 
 ![alt text](image-1.png)
 
- - Nazwa musi odpowiadać tej ogłaszanej przez nadajnik.
+ - The name must match the one broadcasted by the beacon.
 
-3. Konfiguracja odbiorników:
+3. Configure receivers:
 
 ![alt text](image-2.png)
 
-- Kolejne promienie czarnych okręgów, to odległość 1m.
-- Czerwony okrąg oznacza odczytywaną odległość od nadajnika.
-- Należy tak dostosować parametry (RSSI at 1m i N) dla każdego odbiornika żeby dla nadajnika w odległości 1m od odbiornika czerwony okrąg pokrywał się z najmniejszym czarnym
+- The successive black circle radii represent a distance of 1m.
+- The red circle represents the measured distance from the beacon.
+- Adjust the parameters (RSSI at 1m and N) for each receiver so that for a beacon located 1m away from the receiver, the red circle overlaps with the smallest black circle.
 
-Przykłądowe ustawienie dla 3 odbiorników ustawionych w trójkąt o bokach 2m:
+Example setup for 3 receivers arranged in a triangle with 2m sides:
 
 ![alt text](image-3.png)
 
-4. Wyświetlania przybliżonej lokalizaji nadajnika:
+4. Display beacon location:
 
 ![alt text](image-5.png)
 
-Zielony marker oznacza pozycje nadajnika:
+The green marker marks the location of the beacon.
 
 ![alt text](image-4.png)
-
-
-
-
-
-
 
 
