@@ -1,5 +1,5 @@
 # BT-Tracer
-System for Tracking the Location of Bluetooth Low Energy (BLE) Beacons Using ESP32.
+System for Tracking the Indoor Location of Bluetooth Low Energy (BLE) Beacons Using ESP32.
 
 ## About
 
