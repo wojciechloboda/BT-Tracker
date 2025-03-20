@@ -26,10 +26,9 @@ The server application, upon launch, provides the user with a graphical interfac
 ### Receivers
 Once the ESP32 receiver is powered on, it attempts to connect to the network. It then initializes the BLE module and tries to establish communication with the server. If the server is running, the connection is initialized, and the server sends the necessary configuration to the receiver for tracking the beacon (the name of the announced device). The receiver then regularly scans for BLE devices, and if it detects the tracked device, it sends the current RSSI to the server.
 
-### Schema
-
-![schemat](https://github.com/wojciechloboda/bt_tracker/assets/46354460/9c293090-ae7a-4e37-8075-00fe197e3c04)
-
+<p align="center">
+  <img src="https://github.com/wojciechloboda/bt_tracker/assets/46354460/9c293090-ae7a-4e37-8075-00fe197e3c04" width="50%" />
+</p>
 
 ### RSSI Error Reduction
 The RSSI value read directly by the ESP32 is susceptible to noise and interference depending on the environment where the tests are conducted. Due to measurement errors, the values can significantly vary between successive readings, making it difficult to accurately determine the beacon's location. To reduce the impact of measurement errors, a Kalman filter was applied. The Kalman filter is a widely used state estimator that estimates the value of a variable based on noisy readings, taking into account previous values and thus reducing the error. (Application of the Kalman filter for RSSI: [https://www.wouterbulten.nl/posts/kalman-filters-explained-removing-noise-from-rssi-signals/](https://www.wouterbulten.nl/posts/kalman-filters-explained-removing-noise-from-rssi-signals/)).
@@ -105,13 +104,17 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     ```
 2. Set the beacon name and start the server:
 
-![alt text](image-1.png)
+<p align="center">
+  <img src="image-1.png" width="50%" />
+</p>
 
  - The name must match the one broadcasted by the beacon.
 
 3. Configure receivers:
 
-![alt text](image-2.png)
+<p align="center">
+  <img src="image-2.png" width="50%" />
+</p>
 
 - The successive black circle radii represent a distance of 1m.
 - The red circle represents the measured distance from the beacon.
@@ -119,14 +122,19 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
 
 Example setup for 3 receivers arranged in a triangle with 2m sides:
 
-![alt text](image-3.png)
+<p align="center">
+  <img src="image-3.png" width="50%" />
+</p>
 
 4. Display beacon location:
 
-![alt text](image-5.png)
+<p align="center">
+  <img src="image-5.png" width="50%" />
+</p>
 
 The green marker marks the location of the beacon.
 
-![alt text](image-4.png)
-
+<p align="center">
+  <img src="image-4.png" width="50%" />
+</p>
 
